@@ -9,7 +9,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("-p", "--data_path", default="data/raw_data/", help="path of the data folder")
 args = vars(ap.parse_args())
 
-prepared_data_path = "data/prepared_data/prepare_data.json"
+prepared_data_path = "data/prepared_data/prepare_data.dat"
 
 
 image_types = ["jpg", "jpeg", "png", "tif"]
@@ -49,18 +49,14 @@ def get_media_type(file):
         return None
 
 
-def detect_face(image, train=False):
+def detect_face(image, method="cnn"):
     """
     Given an image searches for face
     :param image:
-    :param train:
+    :param method: 1) cnn: more accurate but slow, good for training
+                   2) hog: less accurate but fast, good for real time predicting
     :return: coordinates list of the faces [( X1, Y2, X2, Y1 ) ,.... ]- format
     """
-    if train:
-        method = "cnn"
-    else:
-        method = "hog"
-
     bounding_boxes = face_recognition.face_locations(image, model=method)
     return bounding_boxes
 
@@ -76,7 +72,14 @@ def encode_face(image, bounding_boxes):
     return encodings
 
 
-def encode_by_image(image, is_detect=False):
+def encode_by_image(image, is_detect=True):
+    """
+    Given an image, locates the face and get 128 features of face
+    set is_detect = False --> if given image is the image
+    :param image:
+    :param is_detect:
+    :return: lists of 128 features of face
+    """
     global IMAGE_PROCESSED
     images = [image, cv2.flip(image, 1)] # Horizontal Flip image for better prediction
     encodings = []
@@ -101,6 +104,12 @@ def encode_by_image(image, is_detect=False):
 
 
 def encode_by_video(video, skips=VIDEO_FRAME_SKIP_COUNTER):
+    """
+    Takes Frames from image and feeded to "Encode_by_image()"
+    :param video:
+    :param skips: Skips 'N' frames, (To get more unique image rather than repetition"
+    :return:
+    """
     total_encodings = []
     while True:
         for i in range(skips):
@@ -111,7 +120,7 @@ def encode_by_video(video, skips=VIDEO_FRAME_SKIP_COUNTER):
             break
 
         encodings = encode_by_image(image, is_detect=True)
-        if encodings != None:
+        if encodings is not None:
             for encoding in encodings:
                 total_encodings += encoding
 
@@ -138,7 +147,7 @@ def prepare_data():
                 try:
                     image = cv2.imread(file_path, 0)
                     encoded_values = encode_by_image(image)
-                    if encoded_values != None:
+                    if encoded_values is not None:
                         for encoded_value in encoded_values:
                             names.append(name)
                             encodings += encoded_value
