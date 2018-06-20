@@ -16,7 +16,8 @@ image_types = ["jpg", "jpeg", "png", "tif"]
 video_types = ["mp4", "mpeg", "avi", "flv", "wmv", "mov"]
 
 
-VIDEO_FRAME_SKIP_COUNTER = 100
+VIDEO_FRAME_SKIP_COUNTER = 150
+IMAGE_PROCESSED = 0
 
 
 def dump_serialize_encodings(data):
@@ -76,22 +77,31 @@ def encode_face(image, bounding_boxes):
 
 
 def encode_by_image(image, is_detect=False):
-    if is_detect:
-        bounding_boxes = detect_face(image)
-    else:
-        bounding_boxes = [(0, image.shape[1], image.shape[0], 0)]
+    global IMAGE_PROCESSED
+    images = [image, cv2.flip(image, 1)] # Horizontal Flip image for better prediction
+    encodings = []
+    for image in images:
+        if is_detect:
+            bounding_boxes = detect_face(image)
+        else:
+            bounding_boxes = [(0, image.shape[1], image.shape[0], 0)]
 
-    if len(bounding_boxes) == 1:
-        # An image should contain only one FACE
-        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-        encoding = encode_face(image, bounding_boxes)
-        return encoding
-    else:
-        return None
+        if len(bounding_boxes) == 1:
+            # An image should contain only one FACE
+            if len(image.shape) < 3:
+                image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+            encoding = encode_face(image, bounding_boxes)
+            encodings.append(encoding)
+            IMAGE_PROCESSED += 1
+
+    if len(encodings) > 0:
+        print("Image processed: ", IMAGE_PROCESSED)
+        return encodings
+    return None
 
 
 def encode_by_video(video, skips=VIDEO_FRAME_SKIP_COUNTER):
-    encodings = []
+    total_encodings = []
     while True:
         for i in range(skips):
             _, _ = video.read()
@@ -100,11 +110,12 @@ def encode_by_video(video, skips=VIDEO_FRAME_SKIP_COUNTER):
         if not flag:
             break
 
-        encoding = encode_by_image(image, is_detect=True)
-        if encoding != None:
-            encodings += encoding
+        encodings = encode_by_image(image, is_detect=True)
+        if encodings != None:
+            for encoding in encodings:
+                total_encodings += encoding
 
-    return encodings
+    return total_encodings
 
 
 def prepare_data():
@@ -126,10 +137,11 @@ def prepare_data():
             if file_type == "image":
                 try:
                     image = cv2.imread(file_path, 0)
-                    encode_value = encode_by_image(image)
-                    if encode_value != None:
-                        names.append(name)
-                        encodings.append(encode_value)
+                    encoded_values = encode_by_image(image)
+                    if encoded_values != None:
+                        for encoded_value in encoded_values:
+                            names.append(name)
+                            encodings += encoded_value
                 except Exception as e:
                     print("Error at Image Encoding:", e)
 
@@ -143,8 +155,6 @@ def prepare_data():
                         encodings.append(encoded_value)
                 except Exception as e:
                     print("Error at Video Encoding:", e)
-
-            print("%s / %s" % (i, len(files)))
 
     name_encoding_dict = {"names": names, "encodings": encodings}
     dump_serialize_encodings(name_encoding_dict)
