@@ -160,6 +160,8 @@ def predict(image):
     # Image needs to be in RGB to get encodings
     if len(image.shape) < 3:
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
+    product = 1
     if is_image_big(image):
         image, product = resize_image(image)
 
@@ -173,6 +175,51 @@ def predict(image):
     names = identify_person(face_encodings)
     result = format_results(names, face_coordinates, product)
     return result
+
+
+def add_name_to_image(image, name_coords):
+    """
+    Draw bounding box on face and add name text
+    :param image:
+    :param name_coords:
+    :return:
+    """
+    if image.shape[0] > 2000 or image.shape[1] > 2000:
+        rect_line_thickness = 5
+        text_line_thickness = 3
+        text_size = 4
+
+    elif image.shape[0] > 1000 or image.shape[1] > 1000:
+        rect_line_thickness = 3
+        text_line_thickness = 2
+        text_size = 2
+
+    elif image.shape[0] > 5000 or image.shape[1] > 5000:
+        rect_line_thickness = 2
+        text_line_thickness = 2
+        text_size = 1
+
+    else:
+        rect_line_thickness = 1
+        text_line_thickness = 1
+        text_size = 0.5
+
+    for name, coords in name_coords.items():
+        if UNKNOWN in name:
+            cv2.rectangle(image, (coords[1], coords[0]), (coords[3], coords[2]), (0, 0, 255), rect_line_thickness)
+            cv2.putText(image, name, (coords[1], coords[0]), cv2.FONT_HERSHEY_SIMPLEX, text_size, (0, 0, 255), text_line_thickness)
+        else:
+            cv2.rectangle(image, (coords[1], coords[0]), (coords[3], coords[2]), (0, 255, 0), rect_line_thickness)
+            cv2.putText(image, name, (coords[1], coords[0]), cv2.FONT_HERSHEY_SIMPLEX, text_size, (0, 0, 255), text_line_thickness)
+
+    return image
+
+
+def process_image(image):
+    name_coords = predict(image)
+    image = add_name_to_image(image, name_coords)
+    cv2.imshow('vid', image)
+    cv2.waitKey(0)
 
 
 def process_video(video, skips=15):
@@ -191,14 +238,8 @@ def process_video(video, skips=15):
             break
 
         name_coords = predict(image)
-        for name, coords in name_coords.items():
-            if name != UNKNOWN:
-                cv2.rectangle(image, (coords[1], coords[0]), (coords[3], coords[2]), (0, 255, 0), 3)
-                cv2.putText(image, name, (coords[1], coords[0]), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 2)
-            else:
-                cv2.rectangle(image, (coords[1], coords[0]), (coords[3], coords[2]), (255, 0, 0), 3)
-                cv2.putText(image, name, (coords[1], coords[0]), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 2)
-
+        if name_coords:
+            image = add_name_to_image(image, name_coords)
         if is_image_big(image):
             image, _ = resize_image(image)
         cv2.imshow('vid', image)
@@ -216,7 +257,7 @@ if __name__ == "__main__":
 
     elif args["image"] is not None:
         image = cv2.imread(args["image"])
-        print(predict(image))
+        process_image(image)
 
     else:
         print("Please provide path to image or video:")

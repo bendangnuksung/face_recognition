@@ -91,7 +91,7 @@ def encode_face(image, bounding_boxes):
 def encode_by_image(image, is_detect=True):
     """
     Given an image, locates the face and get 128 features of face
-    set is_detect = False --> if given image is the image
+    set is_detect = False --> set if given image is just the face
     :param image:
     :param is_detect:
     :return: lists of 128 features of face
@@ -135,7 +135,7 @@ def encode_by_video(video, skips=VIDEO_FRAME_SKIP_COUNTER):
         if not flag:
             break
 
-        encodings = encode_by_image(image, is_detect=True)
+        encodings = encode_by_image(image)
         if encodings is not None:
             for encoding in encodings:
                 total_encodings += encoding
@@ -152,6 +152,10 @@ def prepare_data():
     for folder in folders:
         name = folder
         folder_path = os.path.join(args["data_path"], folder)
+
+        if not os.path.isdir(folder_path):
+            continue
+
         files = os.listdir(folder_path)
         print("Reading from ", folder_path)
 
