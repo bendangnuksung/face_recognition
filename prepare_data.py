@@ -5,18 +5,31 @@ import argparse
 import os
 
 
+# 1) Raw data path is where the folders of images, videos will be (Note: Folder Name = name of the person)
+# 2) Prepared data path is where the encodings will be saved
+raw_data_path = "data/raw_data/"
+prepared_data_path = "data/prepared_data"
+if not os.path.exists(prepared_data_path):
+    os.makedirs(prepared_data_path)
+
+# encoded file name -> file name of the trained encodings
+encoded_file_name = "saved_encodings_1"
+encoded_file_path = os.path.join(prepared_data_path, encoded_file_name)
+
+
 ap = argparse.ArgumentParser()
-ap.add_argument("-p", "--data_path", default="data/raw_data/", help="path of the data folder")
+ap.add_argument("-p", "--data_path", default=raw_data_path, help="path of the data folder")
 args = vars(ap.parse_args())
 
-prepared_data_path = "data/prepared_data/prepare_data.dat"
-
-
+# video, image types to check file type
 image_types = ["jpg", "jpeg", "png", "tif"]
 video_types = ["mp4", "mpeg", "avi", "flv", "wmv", "mov"]
 
 
+# Skips N frame in a video in each iteration
 VIDEO_FRAME_SKIP_COUNTER = 150
+
+
 IMAGE_PROCESSED = 0
 
 
@@ -26,7 +39,7 @@ def dump_serialize_encodings(data):
     :param data:
     :return:
     """
-    with open(prepared_data_path, "wb") as f:
+    with open(encoded_file_path, "wb") as f:
         f.write(pickle.dumps(data))
 
 
@@ -49,14 +62,17 @@ def get_media_type(file):
         return None
 
 
-def detect_face(image, method="cnn"):
+def detect_face(image, method="hog"):
     """
     Given an image searches for face
     :param image:
-    :param method: 1) cnn: more accurate but slow, good for training
-                   2) hog: less accurate but fast, good for real time predicting
-    :return: coordinates list of the faces [( X1, Y2, X2, Y1 ) ,.... ]- format
+    :param method: 1) cnn: more accurate but slow
+                   2) hog: less accurate but fast
+    :return: coordinates list of the faces [( X1, Y2, X2, Y1 ) ,.... ]- format where X1= Top, Y1= Left
     """
+    if method not in ["cnn", "hog"]:
+        print("Method not identified")
+        exit()
     bounding_boxes = face_recognition.face_locations(image, model=method)
     return bounding_boxes
 
