@@ -15,6 +15,7 @@ It accepts both images and videos for training. So you can just:
 
 * Note:
   * An image or a video should contain only the face of the respective person
+  * Minimum 15 images of every individual person (for better prediction)
   * Optional: Move all directories with images to data/raw_data/
 
 ## Using Face Recognition
@@ -22,6 +23,7 @@ It accepts both images and videos for training. So you can just:
 Install dependencies
 
 ```sh
+sudo apt-get install build-essential cmake pkg-config
 sudo pip3 install -r requirements.txt 
 ```
 
