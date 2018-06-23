@@ -218,6 +218,8 @@ def add_name_to_image(image, name_coords):
 def process_image(image):
     name_coords = predict(image)
     image = add_name_to_image(image, name_coords)
+    if is_image_big(image):
+        image, _ = resize_image(image)
     cv2.imshow('vid', image)
     cv2.waitKey(0)
 
