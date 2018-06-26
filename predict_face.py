@@ -92,31 +92,23 @@ def load_encodings():
     saved_encodings = pickle.loads(open(prepared_data_path, "rb").read())
 
 
-def identify_person(face_encodings, threshold=10):
+def identify_person(face_encodings, tolerance=0.5):
     """
     checks if given encodings matches with saved encodings
     :param face_encodings:
-    :return: name of person if found
+    :param tolerance: lesser the tolerance more strict of matching face
+    :return:
     """
     names = []
     for encoding in face_encodings:
-        results = face_recognition.compare_faces(saved_encodings["encodings"], encoding)
+        results = face_recognition.compare_faces(saved_encodings["encodings"], encoding, tolerance=tolerance)
         results = np.array(results)
         name = UNKNOWN
 
         indices = list(np.where(results)[0])
         if len(indices):
-            result_names = {}
-            for i in indices:
-                temp_name = saved_encodings["names"][i]
-                if temp_name in result_names:
-                    result_names[temp_name] += 1
-                else:
-                    result_names[temp_name] = 1
-            sorted_results = sorted(result_names.items(), key= lambda x: x[1], reverse=True)
-            (result_name, count) = sorted_results[0]
-            if count >= threshold:
-                name = result_name
+            result_names = [saved_encodings["names"][i] for i in indices]
+            name = max(set(result_names), key=result_names.count)
         names.append(name)
     return names
 

@@ -24,6 +24,7 @@ Install dependencies
 
 ```sh
 sudo apt-get install build-essential cmake pkg-config
+# Dlib installation will take time (Building from src).
 sudo pip3 install -r requirements.txt 
 ```
 
